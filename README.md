@@ -52,17 +52,26 @@ Redigera `config.yaml` för att välja:
 
 ### 3. Kör systemet
 
-**Kör en gång (testa):**
+**🌐 Webbgränssnitt (rekommenderas):**
+```bash
+cd web
+python app.py
+```
+Öppna sedan http://localhost:5000 i din webbläsare.
+
+**Kommandorad (CLI):**
+
+Kör en gång (testa):
 ```bash
 python main.py --once
 ```
 
-**Interaktivt läge:**
+Interaktivt läge:
 ```bash
 python main.py
 ```
 
-**Schemalagd körning (daemon):**
+Schemalagd körning (daemon):
 ```bash
 python main.py --daemon
 ```

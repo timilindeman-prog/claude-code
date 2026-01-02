@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Omvärldsanalys{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="hero">
+        <h2>Automatisk Omvärldsanalys</h2>
+        <p>AI-driven månatlig analys av dina valda ämnesområden</p>
+    </div>
+
+    <!-- Status Card -->
+    <div class="card status-card">
+        <h3>📊 Status</h3>
+        <div id="status-container">
+            <div class="status-message" id="status-message">{{ status.message }}</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: {{ status.progress }}%"></div>
+            </div>
+            <div class="progress-text" id="progress-text">{{ status.progress }}%</div>
+        </div>
+
+        <div class="action-buttons">
+            <button id="start-btn" class="btn btn-primary" onclick="startAnalysis()"
+                    {% if status.running %}disabled{% endif %}>
+                ▶ Starta Analys
+            </button>
+            {% if status.current_pdf %}
+            <a href="/api/download/{{ status.current_pdf }}" class="btn btn-success">
+                📄 Ladda ner senaste rapporten
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Current Configuration -->
+    <div class="card">
+        <h3>⚙️ Aktuell Konfiguration</h3>
+        {% if config %}
+        <div class="config-summary">
+            <div class="config-item">
+                <strong>Ämnen att analysera:</strong>
+                <ul>
+                    {% for topic in config.topics %}
+                    <li>{{ topic }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="config-item">
+                <strong>Analysdjup:</strong> {{ config.analysis.depth }}
+            </div>
+            <div class="config-item">
+                <strong>Språk:</strong> {{ config.search.language }}
+            </div>
+        </div>
+        <a href="{{ url_for('config_page') }}" class="btn btn-secondary">Ändra inställningar</a>
+        {% else %}
+        <p class="warning">⚠️ Ingen konfiguration hittades. Vänligen konfigurera systemet först.</p>
+        {% endif %}
+    </div>
+
+    <!-- Analysis History -->
+    <div class="card">
+        <h3>📚 Senaste Analyser</h3>
+        <div id="history-container">
+            {% if status.history %}
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Ämnen</th>
+                        <th>Rapport</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in status.history %}
+                    <tr>
+                        <td>{{ item.timestamp }}</td>
+                        <td>{{ item.topics }} st</td>
+                        <td>
+                            <a href="/api/download/{{ item.pdf }}" class="btn-link">
+                                📥 Ladda ner
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state">Inga analyser har körts ännu. Starta din första analys ovan!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Available Reports -->
+    <div class="card">
+        <h3>📁 Alla Rapporter</h3>
+        <div id="reports-container">
+            <p class="loading">Laddar rapporter...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-uppdatera status
+let statusInterval;
+
+function startAnalysis() {
+    fetch('/api/start-analysis', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('start-btn').disabled = true;
+            startStatusPolling();
+        } else if (data.error) {
+            alert('Fel: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Fel vid start av analys: ' + error);
+    });
+}
+
+function updateStatus() {
+    fetch('/api/status')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('status-message').textContent = data.message;
+        document.getElementById('progress-fill').style.width = data.progress + '%';
+        document.getElementById('progress-text').textContent = data.progress + '%';
+
+        if (!data.running) {
+            document.getElementById('start-btn').disabled = false;
+            if (data.progress === 100) {
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+        }
+    });
+}
+
+function startStatusPolling() {
+    statusInterval = setInterval(updateStatus, 2000);
+}
+
+function loadReports() {
+    fetch('/api/reports')
+    .then(response => response.json())
+    .then(reports => {
+        const container = document.getElementById('reports-container');
+        if (reports.length === 0) {
+            container.innerHTML = '<p class="empty-state">Inga rapporter tillgängliga</p>';
+            return;
+        }
+
+        let html = '<table class="history-table"><thead><tr><th>Fil</th><th>Skapad</th><th>Storlek</th><th>Åtgärd</th></tr></thead><tbody>';
+        reports.forEach(report => {
+            const sizeKB = (report.size / 1024).toFixed(1);
+            html += `
+                <tr>
+                    <td>${report.filename}</td>
+                    <td>${report.created}</td>
+                    <td>${sizeKB} KB</td>
+                    <td><a href="/api/download/${report.filename}" class="btn-link">📥 Ladda ner</a></td>
+                </tr>
+            `;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    });
+}
+
+// Ladda rapporter när sidan laddas
+document.addEventListener('DOMContentLoaded', function() {
+    loadReports();
+});
+</script>
+{% endblock %}

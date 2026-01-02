@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Inställningar - Omvärldsanalys{% endblock %}
+
+{% block content %}
+<div class="config-page">
+    <h2>⚙️ Inställningar</h2>
+
+    <!-- Environment Status -->
+    <div class="card">
+        <h3>🔐 Miljövariabler Status</h3>
+        <div class="env-status">
+            <div class="env-item">
+                <span class="status-icon {{ 'ok' if env_status.anthropic_key else 'error' }}">
+                    {{ '✓' if env_status.anthropic_key else '✗' }}
+                </span>
+                <strong>Anthropic API-nyckel:</strong>
+                {{ 'Konfigurerad' if env_status.anthropic_key else 'Saknas' }}
+            </div>
+            <div class="env-item">
+                <span class="status-icon {{ 'ok' if env_status.email_configured else 'error' }}">
+                    {{ '✓' if env_status.email_configured else '✗' }}
+                </span>
+                <strong>E-postkonfiguration:</strong>
+                {{ 'Konfigurerad' if env_status.email_configured else 'Saknas' }}
+            </div>
+        </div>
+        <div class="help-text">
+            <p>💡 För att konfigurera miljövariabler, redigera <code>.env</code> filen i projektets rotkatalog.</p>
+        </div>
+    </div>
+
+    <!-- Configuration Form -->
+    <div class="card">
+        <h3>📝 Analyskonfiguration</h3>
+        <form id="config-form">
+            <!-- Topics -->
+            <div class="form-group">
+                <label>Ämnen att analysera:</label>
+                <div id="topics-container">
+                    {% for topic in config.topics %}
+                    <div class="topic-item">
+                        <input type="text" class="topic-input" value="{{ topic }}">
+                        <button type="button" class="btn-remove" onclick="removeTopic(this)">✗</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addTopic()">+ Lägg till ämne</button>
+            </div>
+
+            <!-- Search Settings -->
+            <div class="form-section">
+                <h4>🔍 Sökinställningar</h4>
+                <div class="form-group">
+                    <label for="max-results">Antal källor per ämne:</label>
+                    <input type="number" id="max-results" value="{{ config.search.max_results_per_topic }}" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label for="language">Språk:</label>
+                    <select id="language">
+                        <option value="sv" {{ 'selected' if config.search.language == 'sv' else '' }}>Svenska</option>
+                        <option value="en" {{ 'selected' if config.search.language == 'en' else '' }}>Engelska</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Analysis Settings -->
+            <div class="form-section">
+                <h4>🤖 Analysinställningar</h4>
+                <div class="form-group">
+                    <label for="depth">Analysdjup:</label>
+                    <select id="depth">
+                        <option value="quick" {{ 'selected' if config.analysis.depth == 'quick' else '' }}>Snabb</option>
+                        <option value="standard" {{ 'selected' if config.analysis.depth == 'standard' else '' }}>Standard</option>
+                        <option value="deep" {{ 'selected' if config.analysis.depth == 'deep' else '' }}>Djup</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-recommendations" {{ 'checked' if config.analysis.include_recommendations else '' }}>
+                        Inkludera rekommendationer
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-trends" {{ 'checked' if config.analysis.include_trends else '' }}>
+                        Inkludera trendanalys
+                    </label>
+                </div>
+            </div>
+
+            <!-- PDF Settings -->
+            <div class="form-section">
+                <h4>📄 PDF-inställningar</h4>
+                <div class="form-group">
+                    <label for="pdf-title">Rapporttitel:</label>
+                    <input type="text" id="pdf-title" value="{{ config.pdf.title }}">
+                </div>
+                <div class="form-group">
+                    <label for="pdf-language">PDF-språk:</label>
+                    <select id="pdf-language">
+                        <option value="sv" {{ 'selected' if config.pdf.language == 'sv' else '' }}>Svenska</option>
+                        <option value="en" {{ 'selected' if config.pdf.language == 'en' else '' }}>Engelska</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-sources" {{ 'checked' if config.pdf.include_sources else '' }}>
+                        Inkludera källor i PDF
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Spara inställningar</button>
+                <button type="button" class="btn btn-secondary" onclick="location.reload()">🔄 Återställ</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addTopic() {
+    const container = document.getElementById('topics-container');
+    const div = document.createElement('div');
+    div.className = 'topic-item';
+    div.innerHTML = `
+        <input type="text" class="topic-input" value="" placeholder="Nytt ämne">
+        <button type="button" class="btn-remove" onclick="removeTopic(this)">✗</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeTopic(button) {
+    const container = document.getElementById('topics-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    } else {
+        alert('Du måste ha minst ett ämne!');
+    }
+}
+
+document.getElementById('config-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    // Samla alla ämnen
+    const topics = Array.from(document.querySelectorAll('.topic-input'))
+        .map(input => input.value.trim())
+        .filter(value => value !== '');
+
+    if (topics.length === 0) {
+        alert('Du måste ange minst ett ämne!');
+        return;
+    }
+
+    // Bygg konfigurationsobjekt
+    const config = {
+        topics: topics,
+        search: {
+            max_results_per_topic: parseInt(document.getElementById('max-results').value),
+            language: document.getElementById('language').value
+        },
+        analysis: {
+            depth: document.getElementById('depth').value,
+            include_recommendations: document.getElementById('include-recommendations').checked,
+            include_trends: document.getElementById('include-trends').checked
+        },
+        pdf: {
+            title: document.getElementById('pdf-title').value,
+            language: document.getElementById('pdf-language').value,
+            include_sources: document.getElementById('include-sources').checked
+        },
+        schedule: {
+            cron: "0 9 1 * *"
+        }
+    };
+
+    // Spara via API
+    fetch('/api/config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✓ Inställningar sparade!');
+            window.location.href = '/';
+        }
+    })
+    .catch(error => {
+        alert('Fel vid sparande: ' + error);
+    });
+});
+</script>
+{% endblock %}
