@@ -1,0 +1,31 @@
+# Konfiguration för omvärldsanalys
+
+# Områden och ämnen du vill analysera
+topics:
+  - "Artificiell intelligens och maskininlärning"
+  - "Hållbarhet och klimatförändringar"
+  - "Svensk ekonomi och näringsliv"
+  - "Teknologiska trender"
+  - "Geopolitik och internationella relationer"
+
+# Sökparametrar
+search:
+  max_results_per_topic: 10
+  language: "sv"  # sv för svenska, en för engelska
+
+# Analysparametrar
+analysis:
+  depth: "deep"  # "quick", "standard", eller "deep"
+  include_recommendations: true
+  include_trends: true
+
+# PDF-inställningar
+pdf:
+  title: "Månatlig Omvärldsanalys"
+  language: "sv"
+  include_sources: true
+
+# Schema (cron-format)
+schedule:
+  # Kör första dagen i månaden kl 09:00
+  cron: "0 9 1 * *"
