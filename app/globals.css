@@ -1,0 +1,32 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+main {
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+textarea {
+  width: 100%;
+}
+
+button {
+  width: fit-content;
+  padding: 0.5rem 1rem;
+}
+
+.output-area {
+  min-height: 140px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  padding: 0.75rem;
+}
